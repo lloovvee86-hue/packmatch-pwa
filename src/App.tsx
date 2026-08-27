@@ -82,6 +82,7 @@ function App() {
   const [splitMode, setSplitMode] = useState<SplitMode>('horizontal')
   const [frontSide, setFrontSide] = useState<FrontSide>('first')
   const [splitRatio, setSplitRatio] = useState<number>(0.5)
+  const [marginRatio, setMarginRatio] = useState<number>(0.05)
 
   const [loading, setLoading] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
@@ -139,9 +140,10 @@ function App() {
       return
     }
     const img = new Image()
-    img.onload = () => setSplitGuideUrl(buildSplitPreview(img, splitMode, splitRatio, frontSide))
+    img.onload = () =>
+      setSplitGuideUrl(buildSplitPreview(img, splitMode, splitRatio, frontSide, marginRatio))
     img.src = designPreview
-  }, [designPreview, splitMode, splitRatio, frontSide])
+  }, [designPreview, splitMode, splitRatio, frontSide, marginRatio])
 
   async function handleCompare() {
     if (!designFile || !frontPhotoFile || !backPhotoFile) return
@@ -164,6 +166,7 @@ function App() {
         splitMode,
         frontSide,
         splitRatio,
+        marginRatio,
       )
       if (isAbortedRef.current) return
       setResult(res)
@@ -251,7 +254,7 @@ function App() {
 
             <div className="split-slider-box">
               <div className="slider-header">
-                <span>✂️ 분할선 위치 조정</span>
+                <span>✂️ 앞·뒤 분할선 위치</span>
                 <strong>{Math.round(splitRatio * 100)}% 지점</strong>
               </div>
               <input
@@ -267,6 +270,27 @@ function App() {
                 <span>10%</span>
                 <span>50% (중앙)</span>
                 <span>90%</span>
+              </div>
+            </div>
+
+            <div className="split-slider-box margin-slider-box">
+              <div className="slider-header">
+                <span>🔲 외곽 치수선/도련 제외 여백 (Safe Margin)</span>
+                <strong>{Math.round(marginRatio * 100)}% 제외</strong>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="15"
+                step="1"
+                value={Math.round(marginRatio * 100)}
+                onChange={(e) => setMarginRatio(Number(e.target.value) / 100)}
+                className="split-slider margin-slider"
+              />
+              <div className="slider-labels">
+                <span>0% (전체)</span>
+                <span>5% (표준)</span>
+                <span>15% (최대 제외)</span>
               </div>
             </div>
           </div>

@@ -81,6 +81,8 @@ function App() {
   const [backPreview, setBackPreview] = useState<string | null>(null)
   const [splitMode, setSplitMode] = useState<SplitMode>('horizontal')
   const [frontSide, setFrontSide] = useState<FrontSide>('first')
+  const [splitRatio, setSplitRatio] = useState<number>(0.5)
+
   const [loading, setLoading] = useState(false)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [ocrReady, setOcrReady] = useState(isOcrReady())
@@ -137,9 +139,9 @@ function App() {
       return
     }
     const img = new Image()
-    img.onload = () => setSplitGuideUrl(buildSplitPreview(img, splitMode))
+    img.onload = () => setSplitGuideUrl(buildSplitPreview(img, splitMode, splitRatio, frontSide))
     img.src = designPreview
-  }, [designPreview, splitMode])
+  }, [designPreview, splitMode, splitRatio, frontSide])
 
   async function handleCompare() {
     if (!designFile || !frontPhotoFile || !backPhotoFile) return
@@ -161,6 +163,7 @@ function App() {
         backPhotoFile,
         splitMode,
         frontSide,
+        splitRatio,
       )
       if (isAbortedRef.current) return
       setResult(res)
@@ -245,6 +248,27 @@ function App() {
                 </option>
               </select>
             </label>
+
+            <div className="split-slider-box">
+              <div className="slider-header">
+                <span>✂️ 분할선 위치 조정</span>
+                <strong>{Math.round(splitRatio * 100)}% 지점</strong>
+              </div>
+              <input
+                type="range"
+                min="10"
+                max="90"
+                step="1"
+                value={Math.round(splitRatio * 100)}
+                onChange={(e) => setSplitRatio(Number(e.target.value) / 100)}
+                className="split-slider"
+              />
+              <div className="slider-labels">
+                <span>10%</span>
+                <span>50% (중앙)</span>
+                <span>90%</span>
+              </div>
+            </div>
           </div>
         )}
       </section>

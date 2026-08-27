@@ -22,22 +22,26 @@ function getInnerCropRect(
   }
 }
 
-/** 합본 시안 → 앞·뒤 Canvas 분리 (외곽 치수선/도련 자동 트리밍) */
+/** 합본 시안 → 앞·뒤 Canvas 분리 (사용자 지정 splitRatio 0.1~0.9 반영 및 외곽 치수선 트리밍) */
 export function splitDesignCanvas(
   img: HTMLImageElement,
   mode: SplitMode,
   frontSide: FrontSide,
+  splitRatio = 0.5,
 ): { front: HTMLCanvasElement; back: HTMLCanvasElement } {
   const w = img.naturalWidth
   const h = img.naturalHeight
   const front = document.createElement('canvas')
   const back = document.createElement('canvas')
 
-  if (mode === 'horizontal') {
-    const half = Math.floor(w / 2)
+  // splitRatio는 10% ~ 90% 사이로 안전 제한
+  const ratio = Math.max(0.1, Math.min(0.9, splitRatio))
 
-    const firstRaw = { sx: 0, sy: 0, sw: half, sh: h }
-    const secondRaw = { sx: half, sy: 0, sw: w - half, sh: h }
+  if (mode === 'horizontal') {
+    const splitX = Math.floor(w * ratio)
+
+    const firstRaw = { sx: 0, sy: 0, sw: splitX, sh: h }
+    const secondRaw = { sx: splitX, sy: 0, sw: w - splitX, sh: h }
 
     // 외곽 치수선 배제용 이너 크롭
     const firstRect = getInnerCropRect(firstRaw)
@@ -46,10 +50,10 @@ export function splitDesignCanvas(
     drawCrop(front, img, frontSide === 'first' ? firstRect : secondRect)
     drawCrop(back, img, frontSide === 'first' ? secondRect : firstRect)
   } else {
-    const half = Math.floor(h / 2)
+    const splitY = Math.floor(h * ratio)
 
-    const firstRaw = { sx: 0, sy: 0, sw: w, sh: half }
-    const secondRaw = { sx: 0, sy: half, sw: w, sh: h - half }
+    const firstRaw = { sx: 0, sy: 0, sw: w, sh: splitY }
+    const secondRaw = { sx: 0, sy: splitY, sw: w, sh: h - splitY }
 
     // 외곽 치수선 배제용 이너 크롭
     const firstRect = getInnerCropRect(firstRaw)
@@ -74,10 +78,12 @@ function drawCrop(
   ctx.drawImage(img, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, rect.sw, rect.sh)
 }
 
-/** 분할선 미리보기 (시안 위에 가이드선) */
+/** 분할선 미리보기 (시안 위에 사용자 지정 가이드선 렌더링) */
 export function buildSplitPreview(
   img: HTMLImageElement,
   mode: SplitMode,
+  splitRatio = 0.5,
+  frontSide: FrontSide = 'first',
 ): string {
   const canvas = document.createElement('canvas')
   canvas.width = img.naturalWidth
@@ -86,28 +92,43 @@ export function buildSplitPreview(
   if (!ctx) return ''
 
   ctx.drawImage(img, 0, 0)
-  ctx.strokeStyle = '#4f46e5'
-  ctx.lineWidth = Math.max(2, Math.round(canvas.width / 400))
-  ctx.setLineDash([12, 8])
+  
+  const ratio = Math.max(0.1, Math.min(0.9, splitRatio))
+
+  ctx.strokeStyle = '#5cb85c'
+  ctx.lineWidth = Math.max(4, Math.round(canvas.width / 250))
+  ctx.setLineDash([14, 10])
+
+  const fontSize = Math.max(18, Math.round(canvas.width / 35))
+  ctx.font = `bold ${fontSize}px sans-serif`
 
   if (mode === 'horizontal') {
-    const x = Math.floor(canvas.width / 2)
+    const x = Math.floor(canvas.width * ratio)
     ctx.beginPath()
     ctx.moveTo(x, 0)
     ctx.lineTo(x, canvas.height)
     ctx.stroke()
-    ctx.font = `bold ${Math.max(14, canvas.width / 50)}px sans-serif`
-    ctx.fillStyle = '#4f46e5'
-    ctx.fillText('앞 | 뒤', x + 8, 28)
+
+    // 뱃지 라벨
+    ctx.fillStyle = '#5cb85c'
+    const leftLabel = frontSide === 'first' ? ' [ 앞면 (Front) ] ' : ' [ 뒷면 (Back) ] '
+    const rightLabel = frontSide === 'first' ? ' [ 뒷면 (Back) ] ' : ' [ 앞면 (Front) ] '
+    
+    ctx.fillText(leftLabel, Math.max(20, x - 200), 40)
+    ctx.fillText(rightLabel, Math.min(canvas.width - 200, x + 20), 40)
   } else {
-    const y = Math.floor(canvas.height / 2)
+    const y = Math.floor(canvas.height * ratio)
     ctx.beginPath()
     ctx.moveTo(0, y)
     ctx.lineTo(canvas.width, y)
     ctx.stroke()
-    ctx.font = `bold ${Math.max(14, canvas.width / 50)}px sans-serif`
-    ctx.fillStyle = '#4f46e5'
-    ctx.fillText('앞 / 뒤', 8, y - 8)
+
+    ctx.fillStyle = '#5cb85c'
+    const topLabel = frontSide === 'first' ? ' [ 앞면 (Front) ] ' : ' [ 뒷면 (Back) ] '
+    const bottomLabel = frontSide === 'first' ? ' [ 뒷면 (Back) ] ' : ' [ 앞면 (Front) ] '
+
+    ctx.fillText(topLabel, 20, Math.max(40, y - 20))
+    ctx.fillText(bottomLabel, 20, Math.min(canvas.height - 20, y + 40))
   }
 
   return canvas.toDataURL('image/jpeg', 0.9)

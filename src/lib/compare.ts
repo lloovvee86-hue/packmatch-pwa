@@ -77,13 +77,15 @@ export async function comparePackagingText(
   backPhotoFile: File,
   splitMode: SplitMode = 'horizontal',
   frontSide: FrontSide = 'first',
+  splitRatio = 0.5,
 ): Promise<PackagingTextResult> {
   const designImg = await loadImage(designFile)
-  const splitPreviewUrl = buildSplitPreview(designImg, splitMode)
+  const splitPreviewUrl = buildSplitPreview(designImg, splitMode, splitRatio, frontSide)
   const { front: frontDesign, back: backDesign } = splitDesignCanvas(
     designImg,
     splitMode,
     frontSide,
+    splitRatio,
   )
 
   const [front, back] = await Promise.all([
